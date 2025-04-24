@@ -15,7 +15,8 @@ import { EMAIL_REGEX, PHONE_REGEX } from "../constants/regex.js";
 
    email: {
       type: String,
-      unique: true,
+      // unique: true,
+    
       lowercase: true,
       sparse: true,
       validate: {
@@ -27,7 +28,7 @@ import { EMAIL_REGEX, PHONE_REGEX } from "../constants/regex.js";
     },
     phone: {
       type: String,
-      unique: true,
+      // unique: true,
       sparse: true,
       validate: {
         validator: (value) => {

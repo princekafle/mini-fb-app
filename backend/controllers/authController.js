@@ -4,6 +4,7 @@ import ResetPassword from "../models/ResetPassword.js";
 import { formatUserdata } from "../helpers/dataFormatter.js";
 import { createJWT } from "../utils/jwt.js";
 import { EMAIL_REGEX, PHONE_REGEX } from "../constants/regex.js";
+import { ROLE_ADMIN } from '../../../ecommerce_nodejs/src/constants/roles.js';
 
 // LOGIN
 const login = async (req, res) => {
@@ -59,92 +60,57 @@ const register = async (req, res) => {
     if (!identifier) {
       return res.status(422).send("Phone or Email is required.");
     }
-    // Basic validations
-    if (!firstName || !lastName)
-      return res.status(422).send("Name is required.");
-    if (!birthDay || !birthMonth || !birthYear)
-      return res.status(422).send("Birth data is required.");
-    if (!identifier)
-      return res.status(422).send("Phone or Email is required.");
-    if (!password)
-      return res.status(422).send("Password is required.");
-    if (!gender)
-      return res.status(422).send("Gender is required.");
+    if (!firstName || !lastName)return res.status(422).send("Name is required.");
+    if (!birthDay || !birthMonth || !birthYear)return res.status(422).send("Birth data is required.");
+    if (!identifier)return res.status(422).send("Phone or Email is required.");
+    if (!password) return res.status(422).send("Password is required.");
+    if (!gender)return res.status(422).send("Gender is required.");
 
    const isEmail= EMAIL_REGEX.test(identifier);
    const isphone = PHONE_REGEX.test(identifier);
   
   if (isEmail) {
    userData.email = identifier;
-    delete userData.phone; 
+   const existingEmailUser = await User.findOne({ email: userData.email });
+   if (existingEmailUser) {
+     return res.status(409).json({
+       message: "User with this email already exists.",
+       success: false,
+     });
+   }
+    // delete userData.phone; 
   } else if (isphone) {
     userData.phone = identifier;
-    delete userData.email;
+    const existingPhoneUser = await User.findOne({ phone: userData.phone });
+    if (existingPhoneUser) {
+      return res.status(409).json({
+        message: "User with this phone number already exists.",
+        success: false,
+      });
+    }
+    // delete userData.email; 
   } else {
     return res.status(422).send("Not a valid email or phone number format.");
   }
 
-  if (!userData.phone && !userData.email) {
-    return res.status(422).send("Phone or Email must be provided.");
-  }
-  
 
-  Object.entries(userData).forEach(([key, value]) => {
-    if (
-      value === undefined ||
-      value === null ||
-      (typeof value === "string" && value.trim() === "")
-    ) {
-      delete userData[key];
+
+     if (userData.roles === ROLE_ADMIN) {
+      const existingAdmin = await User.findOne({ roles: ROLE_ADMIN });
+      if (existingAdmin) {
+        return res.status(400).json({
+          message: "An ADMIN already exists",
+          success: false,
+        });
+      }
     }
-  });
-  
-  if ('email' in userData && !userData.email) {
-    throw new Error("Email still invalid after cleanup");
-  }
-
-   
-  const searchConditions = [];
-
-  if (userData.email) searchConditions.push({ email: userData.email });
-  if (userData.phone) searchConditions.push({ phone: userData.phone });
-  
-  const existingUser = await User.findOne({ $or: searchConditions });
-  
-  if (existingUser) return res.status(409).send("User already exists.");
-
-
-  // if (user) {
-  //   throw {
-  //     statusCode: 409,
-  //     message: "User already exists.",
-  //   };
-  // }
-
-  
-
-  // console.log(userData)
-  console.log('hy guysd')
-    // Create user with only necessary fields
-      const newUser= await User.create(userData
-      );
-    // await newUser.save();
-    console.log(newUser)
-
-    // return await User.create({
-    //   address: data.address,
-    //   name: data.name,
-    //   phone: data.phone,
-    //   email: data.email,
-    //   password: hashedPassword,
-    //   roles: data.roles,
-    // });
-
-
-    // const formattedData = formatUserdata(newUser);
-    const token = createJWT(newUser.toObject());
+    // console.log(userData);
+      const newUser= await User.create(userData);
+    // console.log(newUser)
+    const formattedData = formatUserdata(newUser);
+    const token = createJWT(formattedData);
     res.cookie("authToken", token);
-    res.json(newUser);
+    res.json(formattedData);
 
   } catch (error) {
     res.status(error.statusCode || 500).send(error.message);
