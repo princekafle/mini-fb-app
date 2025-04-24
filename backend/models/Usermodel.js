@@ -1,32 +1,42 @@
 import mongoose from "mongoose";
-import { EMAIL_REGEX } from "../constants/regex.js";
+import { EMAIL_REGEX, PHONE_REGEX } from "../constants/regex.js";
 
 
-const userSchema = new mongoose.Schema({
+
   const userSchema = new mongoose.Schema({
     firstName: {
       type: String,
       required: true,
-      trim: true
     },
     lastName: {
       type: String,
       required: true,
-      trim: true
     },
 
-    email: {
+   email: {
       type: String,
-      required: [true, "Please provide an email"],
       unique: true,
       lowercase: true,
-      trim: true,
+      sparse: true,
       validate: {
         validator: (value) => {
           return EMAIL_REGEX.test(value);
         },
         message: "Invalid email address",
       },
+    },
+    phone: {
+      type: String,
+      unique: true,
+      sparse: true,
+      validate: {
+        validator: (value) => {
+          return PHONE_REGEX.test(value);
+        },
+        message: "Invalid phone number",
+      },
+
+     
     },
     password: {
       type: String,
@@ -47,17 +57,16 @@ const userSchema = new mongoose.Schema({
       type: String,
       required: true
     },
-    gender: {
-      type: String,
-      enum: ["Male", "Female", "Custom"],
-      required: true
-    }
+  gender: {
+    type: String,
+    enum: ["Male", "Female", "Custom"],
+    required: true
   },
 
   address: {
     city: {
       type: String,
-      required: [true, "Please provide a city name"],
+      
     },
     country: {
       type: String,
@@ -70,14 +79,14 @@ const userSchema = new mongoose.Schema({
   profileImageUrl: String,
   roles: {
     type: [String],
-    default: ["user"],
+    default: "user",
     enum: ["user", "admin", "merchant"],
   },
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
-    friends: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }]
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  friends: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }]
 });
 
     const model = mongoose.model("User", userSchema);

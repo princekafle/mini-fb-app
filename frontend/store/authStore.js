@@ -2,9 +2,7 @@
 import { create } from 'zustand';
 import axios from 'axios';
 
-const apiurl = process.env.NEXT_PUBLIC_API_URL;
-;
-console.log(apiurl);
+const BASE_URL = 'http://localhost:8000';
 
 const useAuthStore = create((set) => ({
   user: null,
@@ -25,7 +23,7 @@ const useAuthStore = create((set) => ({
 
   login: async ({ identifier, password }) => {
     try {
-      const response = await axios.post(`${apiurl}/api/auth/login/`, {
+      const response = await axios.post(`${BASE_URL}/api/auth/login/`, {
         identifier, // identifier to send email or pw to backend 
         password,
       });
@@ -59,21 +57,13 @@ const useAuthStore = create((set) => ({
     }
   },
 
-  signup: async ({ name, email, phone, password, confirmPassword, city, province }) => {
+  signup: async ({firstName, lastName, email,birthDay, birthMonth,birthYear,gender,identifier,password}) => {
     try {
       const formData = {
-        name,
-        email,
-        phone,
-        password,
-        confirmPassword,
-        address: {
-          city,
-          province,
-        },
+        firstName, lastName, email,birthDay, birthMonth,birthYear,gender,identifier,password
       }
 
-      const response = await axios.post(`${apiurl}/api/auth/register`, formData);
+      const response = await axios.post(`${BASE_URL}/api/auth/register`, formData);
 
 
       const data = response.data;
@@ -98,7 +88,7 @@ const useAuthStore = create((set) => ({
 
   logout: async () => {
     try {
-      await axios.post(`${apiurl}/api/auth/logout/`);
+      await axios.post(`${BASE_URL}/api/auth/logout/`);
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       localStorage.setItem('IsLoggedin', false);
@@ -119,7 +109,7 @@ const useAuthStore = create((set) => ({
     const id = user.id;
     console.log(id)
     try {
-      const res = await axios.put(`${apiurl}/api/users/${id}`, updatedData, {
+      const res = await axios.put(`${BASE_URL}/api/users/${id}`, updatedData, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
@@ -138,7 +128,7 @@ const useAuthStore = create((set) => ({
     formData.append('image', file);
 
     try {
-      const res = await axios.post(`${apiurl}/api/users/profile/upload`, formData, {
+      const res = await axios.post(`${BASE_URL}/api/users/profile/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -162,7 +152,7 @@ const useAuthStore = create((set) => ({
         throw new Error('User ID not available');
       }
   
-      const response = await axios.get(`${apiurl}/api/users/${id}`, {
+      const response = await axios.get(`${BASE_URL}/api/users/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

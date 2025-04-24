@@ -1,11 +1,11 @@
-import express from "express";
+import express from 'express';
 import dotenv from "dotenv";
 import bodyParser from "body-parser";
 import authRoute from "./routes/authRoute.js";
 import userRoute from "./routes/userRoute.js"
 import connectDB from "./config/database.js";
 import logger from "./middleware/logger.js";
-import cors from 'cors'
+import cors from 'cors';
 
 
 
@@ -24,7 +24,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 const port = process.env.PORT || 5000;
 
-app.get("/", (req, res) => {
+app.get("/", (_, res) => {
   res.json({
     status: "OK",
     version: "1.0.0",

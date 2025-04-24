@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import ResetPassword from "../models/ResetPassword.js";
 import { formatUserdata } from "../helpers/dataFormatter.js";
 import { createJWT } from "../utils/jwt.js";
-import { PASSWORD_REGEX } from "../constants/regex.js";
+import { EMAIL_REGEX, PHONE_REGEX } from "../constants/regex.js";
 
 // LOGIN
 const login = async (req, res) => {
@@ -42,50 +42,119 @@ const login = async (req, res) => {
 // REGISTER
 const register = async (req, res) => {
   try {
-    const { address, email, name, phone, password, confirmPassword } = req.body;
-
-    if (!address?.city) return res.status(422).send("Address is required.");
-    if (!email) return res.status(422).send("Email is required.");
-    if (!name) return res.status(422).send("Name is required.");
-    if (!phone) return res.status(422).send("Phone is required.");
-    if (!password) return res.status(422).send("Password is required.");
-    if (!confirmPassword) return res.status(422).send("Confirm password is required.");
-    if (password !== confirmPassword) return res.status(422).send("Passwords do not match.");
-
-    if (!PASSWORD_REGEX.test(password)) {
-      return res.status(422).send("Password must be at least 8 characters with upper/lowercase and numbers.");
-    }
-
-    const existingUser = await User.findOne({
-      $or: [{ email }, { phone }],
-    });
-
-    if (existingUser) {
-      return res.status(400).send("User already exists.");
-    }
+    const { firstName, lastName, identifier, birthDay, birthMonth, birthYear, gender, password, roles } = req.body;
 
     const hashedPassword = bcrypt.hashSync(password);
-
-    const newUser = await User.create({
-      email,
-      address,
+    let userData = {
+      firstName,
+      lastName,
+      gender,
+      birthDay,
+      birthMonth,
+      birthYear,
       password: hashedPassword,
-      name,
-      phone,
-      roles: req.body.roles || [],
-    });
+      roles: roles || "user",
+    };
 
-    const formattedData = formatUserdata(newUser);
-    const token = createJWT(formattedData);
+    if (!identifier) {
+      return res.status(422).send("Phone or Email is required.");
+    }
+    // Basic validations
+    if (!firstName || !lastName)
+      return res.status(422).send("Name is required.");
+    if (!birthDay || !birthMonth || !birthYear)
+      return res.status(422).send("Birth data is required.");
+    if (!identifier)
+      return res.status(422).send("Phone or Email is required.");
+    if (!password)
+      return res.status(422).send("Password is required.");
+    if (!gender)
+      return res.status(422).send("Gender is required.");
+
+   const isEmail= EMAIL_REGEX.test(identifier);
+   const isphone = PHONE_REGEX.test(identifier);
+  
+  if (isEmail) {
+   userData.email = identifier;
+    delete userData.phone; 
+  } else if (isphone) {
+    userData.phone = identifier;
+    delete userData.email;
+  } else {
+    return res.status(422).send("Not a valid email or phone number format.");
+  }
+
+  if (!userData.phone && !userData.email) {
+    return res.status(422).send("Phone or Email must be provided.");
+  }
+  
+
+  Object.entries(userData).forEach(([key, value]) => {
+    if (
+      value === undefined ||
+      value === null ||
+      (typeof value === "string" && value.trim() === "")
+    ) {
+      delete userData[key];
+    }
+  });
+  
+  if ('email' in userData && !userData.email) {
+    throw new Error("Email still invalid after cleanup");
+  }
+
+   
+  const searchConditions = [];
+
+  if (userData.email) searchConditions.push({ email: userData.email });
+  if (userData.phone) searchConditions.push({ phone: userData.phone });
+  
+  const existingUser = await User.findOne({ $or: searchConditions });
+  
+  if (existingUser) return res.status(409).send("User already exists.");
+
+
+  // if (user) {
+  //   throw {
+  //     statusCode: 409,
+  //     message: "User already exists.",
+  //   };
+  // }
+
+  
+
+  // console.log(userData)
+  console.log('hy guysd')
+    // Create user with only necessary fields
+      const newUser= await User.create(userData
+      );
+    // await newUser.save();
+    console.log(newUser)
+
+    // return await User.create({
+    //   address: data.address,
+    //   name: data.name,
+    //   phone: data.phone,
+    //   email: data.email,
+    //   password: hashedPassword,
+    //   roles: data.roles,
+    // });
+
+
+    // const formattedData = formatUserdata(newUser);
+    const token = createJWT(newUser.toObject());
     res.cookie("authToken", token);
-    res.json(formattedData);
+    res.json(newUser);
+
   } catch (error) {
     res.status(error.statusCode || 500).send(error.message);
   }
 };
 
+
+
 // LOGOUT
-const logout = (req, res) => {
+const logout = (_, res) => {
   res.clearCookie("authToken");
   res.json({ message: "Logged out successfully." });
 };

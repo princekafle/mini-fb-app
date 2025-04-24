@@ -1,10 +1,15 @@
 "use client"
+import useAuthStore from "@/store/authStore";
+import { useRouter } from "next/navigation";
 import React, { useState } from "react";
+import toast from "react-hot-toast";
 
 const Signup = () => {
+  const { signup} = useAuthStore();
+  const router = useRouter();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
+  const [identifier, setidentifier] = useState("");
   const [password, setPassword] = useState("");
   const [birthMonth, setBirthMonth] = useState("Apr");
   const [birthDay, setBirthDay] = useState("23");
@@ -22,19 +27,19 @@ const Signup = () => {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 100 }, (_, i) => String(currentYear - i)); 
 
-  const handleSubmit = (e) => {
+
+  const handleSubmit =  async(e) => {
     e.preventDefault();
-    // Handle form submission here
-    console.log({
-      firstName,
-      lastName,
-      email,
-      password,
-      birthMonth,
-      birthDay,
-      birthYear,
-      gender
-    });
+
+    const response = await signup({firstName, lastName,birthDay, birthMonth,birthYear,gender,identifier,password})
+    if(response.success){
+      toast.success('user created successfully'  );
+      router.push('/');
+    
+    }
+    else{
+      toast.error(`Error backedn: ${response}.message`)
+    }
   };
 
   return (
@@ -162,13 +167,13 @@ const Signup = () => {
             </div>
           </div>
           
-          {/* Email */}
+          {/* Email or phone*/}
           <div className="mb-3">
             <input
               type="text"
               placeholder="Mobile number or email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={identifier}
+              onChange={(e) => setidentifier(e.target.value)}
               className="border border-gray-300 rounded p-2 w-full"
             />
           </div>
